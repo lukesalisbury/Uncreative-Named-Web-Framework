@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+	<head>
+		<script>console.time('script')</script>
+		<script>"use strict";function load(url){return new Promise(function(g,b){var s=document.createElement('script');s.setAttribute('src',url);s.onload=(e)=>g(e);s.onerror=(e)=>b(e);document.querySelector('head').appendChild(s)})}</script>
+		<script src="../res/unjs/dom_v2.js"></script>
+		<script src="../res/unjs/core_v2.js"></script>
+		<title>TV</title>
+		<style>
+		html, body { margin:0;padding:0;min-height:100vh; background: #000; font: 9pt sans-serif}
+		main { display:flex; height:100vh; overflow: hidden;}
+	
+		ul,li { padding: .2rem; display: block; color: #ddd; }
+		ul { margin:0;padding:0;  }
+		li:hover { background: rgb(143, 11, 20); color: #fff; font-weight: 800; cursor: pointer;  }
+
+		textarea { width: 100ch; height: 24ch; }
+		#remote { background: #333 no-repeat center right; flex: 0 0 auto; display:flex; flex-direction: column; min-width: 1.5em; max-height: 100vh; overflow: hidden }
+		#remote { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="16" width="16"><path d="m 7,4 l 6,4 l -6,4" style="fill: none; stroke:#000; stroke-width:2px; stroke-linejoin: round" /><path d="m 6,4 l 6,4 l -6,4" style="fill: none; stroke:#fff; stroke-width:2px; stroke-linejoin: round" /></svg>'); }
+		#remote { background-image: none; max-width: 20ch; }
+		#remote > * { display: none; flex: 0 1 2rem;}
+		#remote > * { display: block; }
+		#channels { flex-grow: 1; overflow-y: auto;}
+		#channels li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+		#video { margin: 0 auto; width: auto; }
+		dialog { display: none; background: #FFF }
+		dialog[open] { display: block; position: fixed; top: 50%; transform: translate(0, -50%); border: rgba(0,0,0,0.4) solid 1rem }
+		dialog menu { display: block; background: #DDD }
+		form[method=dialog] { display: block; }
+		</style>
+	</head>
+	
+	<body data-u-event="PageInit@now">
+		<main>
+			<nav id="remote">
+				<select id="regions" data-u-event="UpdatedRegions@change"><option>all</option></select>
+				<ul id="channels"></ul>
+				<button id="edit" data-u-event="ShowDialog@click;'#editchannel'">Edit</button>
+			</nav>
+			<video data-u-event="VideoError@error VideoControlDisplay@mouseover;'1' VideoControlDisplay@mouseleave" id="video" data-default="https://abc-iview-mediapackagestreams-1.akamaized.net/out/v1/50345bf35f664739912f0b255c172ae9/index_1.m3u8"></video>
+		</main>
+		<dialog id="editchannel" data-u-event="UpdateChannels@close">
+			<header>Edit Channel Data</header>
+			<form method="dialog">
+				<p>Latest Channel details can be view at <a target="_blank" href="https://docs.google.com/spreadsheets/d/1B-1NFj-xO1s6zeiZVCwfrChnu8ANjcfAVMLOU2JmZMY/edit#gid=0">https://docs.google.com/spreadsheets/d/1B-1NFj-xO1s6zeiZVCwfrChnu8ANjcfAVMLOU2JmZMY/edit#gid=0</a></p>
+				<p>Selected and Copy (CTRL-C) the first four columns, and paste it below.</p>
+				<textarea></textarea>
+				<menu>
+					<button>Close</button>
+				</menu>
+			</form>
+		</dialog>
+		<dialog id="errordialog">
+			<header>Error</header>
+			<form method="dialog">
+				<p></p>
+				<menu>
+					<button>Close</button>
+				</menu>
+			</form>
+		</dialog>
+	<script>"use strict";
+
+// Source CSV retrieved from https://docs.google.com/spreadsheets/d/1B-1NFj-xO1s6zeiZVCwfrChnu8ANjcfAVMLOU2JmZMY/edit#gid=0
+var basic_data = `ABC			
+ABC News	National (YT Live)	https://www.youtube.com/watch?v=sSTH5sBWcVQ	480p
+ABC News	National	https://abc-iview-mediapackagestreams-1.akamaized.net/out/v1/50345bf35f664739912f0b255c172ae9/index_1.m3u8	576p
+Seven	Sydney	https://live-sevennetwork.akamaized.net/hls/live/573745/SYD1/master.m3u8	504p
+Seven	Townsville	https://live-sevennetwork.akamaized.net/hls/live/573798/TSV1/master.m3u8	360p
+Seven	Wide Bay	https://live-sevennetwork.akamaized.net/hls/live/573783/WBY1/master.m3u8	360p
+7TWO	Cairns	https://live-sevennetwork.akamaized.net/hls/live/573805/CNS2/master.m3u8	360p
+7mate	Toowoomba	https://live-sevennetwork.akamaized.net/hls/live/573788/TWB3/master.m3u8	360p
+Peach	Brisbane	http://csm-e.cds1.yospace.com/csm/extlive/networkten01,SD2TVQ.m3u8	576p
+Boss	Adelaide	http://csm-e.cds1.yospace.com/csm/extlive/networkten01,ONEADS.m3u8	576p
+SBS ONE	National	http://sbslivefvstreaming.sbs.com.au/out/u/sbs1-mo-000-c3093-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+SBS VICELAND	National	http://sbslivefvstreaming.sbs.com.au/out/u/sbs2-mo-000-c3093-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+Food Network	National	http://sbslivefvstreaming.sbs.com.au/out/u/fdnet-mo-000-c3094-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+NITV	National	http://sbslivefvstreaming.sbs.com.au/out/u/nitv-mo-000-c3094-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+ABC News	National (YT Live)	https://www.youtube.com/watch?v=sSTH5sBWcVQ	480p
+ABC News	National	https://abc-iview-mediapackagestreams-1.akamaized.net/out/v1/50345bf35f664739912f0b255c172ae9/index_1.m3u8	576p
+Seven	Sydney	https://live-sevennetwork.akamaized.net/hls/live/573745/SYD1/master.m3u8	504p
+Seven	Townsville	https://live-sevennetwork.akamaized.net/hls/live/573798/TSV1/master.m3u8	360p
+Seven	Wide Bay	https://live-sevennetwork.akamaized.net/hls/live/573783/WBY1/master.m3u8	360p
+7TWO	Cairns	https://live-sevennetwork.akamaized.net/hls/live/573805/CNS2/master.m3u8	360p
+7mate	Toowoomba	https://live-sevennetwork.akamaized.net/hls/live/573788/TWB3/master.m3u8	360p
+Peach	Brisbane	http://csm-e.cds1.yospace.com/csm/extlive/networkten01,SD2TVQ.m3u8	576p
+Boss	Adelaide	http://csm-e.cds1.yospace.com/csm/extlive/networkten01,ONEADS.m3u8	576p
+SBS ONE	National	http://sbslivefvstreaming.sbs.com.au/out/u/sbs1-mo-000-c3093-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+SBS VICELAND	National	http://sbslivefvstreaming.sbs.com.au/out/u/sbs2-mo-000-c3093-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+Food Network	National	http://sbslivefvstreaming.sbs.com.au/out/u/fdnet-mo-000-c3094-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+NITV	National	http://sbslivefvstreaming.sbs.com.au/out/u/nitv-mo-000-c3094-delpkg1-delpkg1-abr/index-root-ipad.m3u8	576p
+`;
+
+function handledHLSJS(video, src) {
+	video.hls.detachMedia()
+	video.hls.attachMedia(video)
+	video.hls.on(Hls.Events.MEDIA_ATTACHED, function () {
+		video.hls.loadSource(src);
+		video.hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+			video.play();
+		});
+	});
+}
+/** UNWF Event 
+ * call@event;argument
+**/
+function cmdVideoError(e, arg) {
+	if ( this.error.code >= MediaError.MEDIA_ERR_DECODE ) {
+		var src = this.src;
+		var video = this;
+		//Note: Most browsers don't support HLS.
+		if ( video.hls ) {
+			handledHLSJS(video, src)
+		} else {
+			load('https://video-dev.github.io/hls.js/dist/hls.js').then( ()=>{
+				video.hls = new Hls()
+				handledHLSJS(video, src)
+			}).catch(()=> {
+				let element = document.querySelector('#errordialog').querySelector('p')
+				element.textContent = 'Your browser does not support video feeds. Edge browser seems to work.'
+				element.show()
+			})
+		}
+	} else {
+		let element = document.querySelector('#errordialog').querySelector('p')
+		element.textContent = 'Channel not found, use the edit dialog to update channels.'
+		element.show()
+	}
+
+
+}
+
+function cmdVideoControlDisplay(/*Event*/e, arg) {
+	this.controls = arg
+	console.log(this.controls,e,arg)
+
+}
+function cmdShowDialog(e, arg) {
+	let element = document.querySelector(arg);
+	if ( element.hasAttribute('open') )
+		element.close()
+	else
+		element.show()
+}
+function cmdUpdatedRegions(/*Event*/e) {
+	let el = this.getSelectedElement();
+	let region = el ? el.value : null;
+	document.querySelectorAll('#channels > li').forEach((item) => {
+		if (region == null || region == item.dataset.region)
+			item.style.display = 'block'
+		else 
+			item.style.display = 'none'
+	})
+
+}
+function cmdUpdateChannels(/*Event*/e) {
+	localStorage.setItem('channels', this.returnValue);
+	parseTSV(this.returnValue); 
+}
+
+function cmdPageInit(e) {
+	try {
+		//localStorage.addEventListener('storage', parseTSV); //BUG (Firefox)
+		//localStorage.onStorage = () => parseTSV(localStorage.getItem('channels'))
+		if (localStorage.getItem('channels').length < 10 ) {
+			localStorage.setItem('channels', basic_data); // set default code
+		}
+		parseTSV();
+	} catch(e) {
+		parseTSV(basic_data)
+	}
+}
+
+function cmdSwitchChannel() {
+	var g = document.querySelector('#video');
+	if (!g) return;
+	g.pause(); 
+
+	try {
+		g.src = this.dataset.link;
+		g.play()
+	} catch (err) {
+		let element = document.querySelector("#errordialog");
+		if ( !element.hasAttribute('open') )
+			element.show()
+		
+		console.error(e,element)
+	}
+}
+
+function parseTSV(data = null) {
+	var remote = document.querySelector('#channels')
+	var regions = document.querySelector('#regions')
+	
+	remote.removeChildren()
+	regions.removeChildren()
+
+	regions.appendNewElement('option', 'all', {})
+
+	var lines = (data ? data : localStorage.getItem('channels')).split('\n');
+
+	for(let i = 0; i < lines.length; i++){
+		var r = lines[i].split('	')
+		if (r && r.length >= 3 ) {
+			if ( r[2].startsWith('http') && !/[^a-z]/i.test(r[1]) ) {
+				var b = remote.appendNewElement('li', r[0] + ' [' + r[1] + ']', {
+					'data-region': r[1],
+					'data-link': r[2]
+				},{'click': cmdSwitchChannel})
+				
+				if ( !regions.querySelector('option[value='+r[1]+']') ) {
+					regions.appendNewElement('option', r[1], { 'value': r[1] });
+				}
+			}
+		}
+	}
+}
+
+
+
+	</script>
+	
+	</body>
+</html>
